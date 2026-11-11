@@ -718,7 +718,7 @@ const quotes = [
     function showQuote() {
         if (unusedQuotes.length === 0) unusedQuotes = [...quotes];
         const i = Math.floor(Math.random() * unusedQuotes.length);
-        showPopup(unusedQuotes.splice(i, 1)[0], 3500);
+        showPopup(unusedQuotes.splice(i, 1)[0], 4800);
     }
 
     function loseLife(hitIndex) {
