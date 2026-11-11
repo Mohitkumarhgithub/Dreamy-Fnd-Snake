@@ -690,18 +690,14 @@ const quotes = [
             setTimeout(() => livesEl.classList.remove("wave"), HIT_PAUSE_MS);
         }
     }
+function getNextMilestoneTarget(eaten) {
+    if (eaten === 0) return 7;
+    return eaten + Math.floor(Math.random() * 6) + 5;
+}
 
-    function getNextMilestoneTarget(eaten) {
-        if (eaten === 0) return 7;
-        if (eaten === 7) return 16;
-        if (eaten === 16) return 19;
-        if (eaten === 19) return 25;
-        return eaten + Math.floor(Math.random() * 4) + 6; // random gap between 6 and 9
-    }
-
-    function scheduleMilestone() {
-        nextMilestoneEaten = getNextMilestoneTarget(totalEaten);
-    }
+function scheduleMilestone() {
+    nextMilestoneEaten = getNextMilestoneTarget(totalEaten);
+}
 
     function showPopup(text, ms, glowClass) {
         pauseUntil = now() + ms;
@@ -718,7 +714,7 @@ const quotes = [
     function showQuote() {
         if (unusedQuotes.length === 0) unusedQuotes = [...quotes];
         const i = Math.floor(Math.random() * unusedQuotes.length);
-        showPopup(unusedQuotes.splice(i, 1)[0], 4800);
+        showPopup(unusedQuotes.splice(i, 1)[0], 5000);
     }
 
     function loseLife(hitIndex) {
