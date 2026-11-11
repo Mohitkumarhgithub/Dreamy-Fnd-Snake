@@ -139,7 +139,16 @@
         padding: 5px 8px; border-radius: 10px; font-weight: bold; font-size: 13px; outline: none; cursor: pointer;
     }
     select option { background: var(--opt); color: var(--text); }
-    @media (max-width: 480px) { .controls-bar span { display: none; } }
+    @media (max-width: 480px) {
+        .controls-bar span { display: none; }
+        .controls-bar { flex-wrap: wrap; justify-content: center; gap: 5px 6px; }
+        .controls-bar select { font-size: 11px; padding: 5px 5px; }
+        #speedSelect { max-width: 74px; }
+        #themeSelect { max-width: 100px; }
+        #skinSelect { max-width: 88px; }
+        #controlSelect { max-width: 88px; }
+        #modeSelect { max-width: 78px; }
+    }
 
     /* ---------- Playable area ---------- */
     .stage { flex: 1 1 0; min-height: 0; display: flex; align-items: center; justify-content: center; }
@@ -424,6 +433,11 @@
             <option value="rose">💖 Rose Quartz</option>
             <option value="iron">⚡ Iron Focus</option>
         </select>
+        <span>Snake:</span>
+        <select id="skinSelect" aria-label="Snake skin">
+            <option value="mood">✨ Mood Glow</option>
+            <option value="classic">🌈 Classic</option>
+        </select>
         <span>Controls:</span>
         <select id="controlSelect" aria-label="Controls">
             <option value="buttons">🎮 Buttons</option>
@@ -498,6 +512,7 @@
     const livesEl = document.getElementById("lives");
     const speedSelect = document.getElementById("speedSelect");
     const themeSelect = document.getElementById("themeSelect");
+    const skinSelect = document.getElementById("skinSelect");
     const controlSelect = document.getElementById("controlSelect");
     const modeSelect = document.getElementById("modeSelect");
     const score2El = document.getElementById("score2");
@@ -614,6 +629,7 @@ const quotes = [
         iron:     { base: 30,  span: 160, step: 12, sat: 75, light: 58, food: "⚡", glow: "#e9c46a" }
     };
     let theme = THEMES.midnight;
+    let snakeSkin = "mood";
 
     const now = () => performance.now();
     const isPaused = () => now() < pauseUntil;
@@ -1048,6 +1064,74 @@ const quotes = [
     function drawSnake() {
         const cells = snake.cells, n = cells.length;
         if (!n) return;
+
+        if (snakeSkin === "classic") {
+            drawClassicSnake();
+            return;
+        }
+
+        // Mood Glow: the snake palette follows the selected mood automatically.
+        const half = grid / 2;
+        const hueAt = i => (theme.base + (i * theme.step)) % 360;
+        const bodyColor = i => `hsl(${hueAt(i)}, ${Math.min(88, theme.sat)}%, ${Math.min(76, theme.light + (i === 0 ? 13 : 3))}%)`;
+
+        ctx.save();
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.shadowColor = theme.glow;
+        ctx.shadowBlur = 13;
+
+        for (let i = n - 1; i >= 0; i--) {
+            const c = cells[i], cx = c.x + half, cy = c.y + half;
+            const r = i === 0 ? 10.5 : 9 - 4 * (i / n);
+            const col = bodyColor(i);
+
+            if (i < n - 1) {
+                const p = cells[i + 1];
+                if (Math.abs(p.x - c.x) <= grid && Math.abs(p.y - c.y) <= grid) {
+                    ctx.strokeStyle = col;
+                    ctx.lineWidth = r * 2;
+                    ctx.beginPath();
+                    ctx.moveTo(p.x + half, p.y + half);
+                    ctx.lineTo(cx, cy);
+                    ctx.stroke();
+                }
+            }
+            ctx.fillStyle = col;
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // A restrained highlight gives the head a soft glass-like finish.
+        const h = cells[0], hx = h.x + half, hy = h.y + half;
+        const ux = Math.sign(snake.dx), uy = Math.sign(snake.dy);
+        const px = -uy, py = ux;
+        const headGlow = ctx.createRadialGradient(hx - 3, hy - 4, 1, hx, hy, 12);
+        headGlow.addColorStop(0, "rgba(255,255,255,0.72)");
+        headGlow.addColorStop(0.38, bodyColor(0));
+        headGlow.addColorStop(1, bodyColor(0));
+        ctx.shadowBlur = 16;
+        ctx.fillStyle = headGlow;
+        ctx.beginPath();
+        ctx.arc(hx, hy, 10.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        for (const side of [-1, 1]) {
+            const ex = hx + ux * 3.5 + px * 4.6 * side;
+            const ey = hy + uy * 3.5 + py * 4.6 * side;
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = "#fff";
+            ctx.beginPath(); ctx.arc(ex, ey, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = "#172033";
+            ctx.beginPath(); ctx.arc(ex + ux * 0.9, ey + uy * 0.9, 1.5, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.restore();
+    }
+
+    function drawClassicSnake() {
+        const cells = snake.cells, n = cells.length;
+        if (!n) return;
         const color = i => `hsl(${(theme.base + (i * theme.step)) % 360}, ${theme.sat}%, ${theme.light}%)`;
         const half = grid / 2;
         ctx.lineCap = "round";
@@ -1085,7 +1169,6 @@ const quotes = [
             ctx.beginPath(); ctx.arc(ex + ux * 0.9, ey + uy * 0.9, 1.5, 0, Math.PI * 2); ctx.fill();
         }
     }
-
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         drawFood();
@@ -1198,6 +1281,14 @@ const quotes = [
         try { localStorage.setItem("dreamyMood", key); } catch (e) {}
     }
 
+    function applySnakeSkin(key) {
+        if (!["mood", "classic"].includes(key)) key = "mood";
+        snakeSkin = key;
+        skinSelect.value = key;
+        document.body.dataset.snakeSkin = key;
+        try { localStorage.setItem("dreamySnakeSkin", key); } catch (e) {}
+    }
+
     function applyControl(mode) {
         if (!["joystick", "buttons", "keys"].includes(mode)) mode = "buttons";
         controlMode = mode;
@@ -1208,6 +1299,7 @@ const quotes = [
     }
 
     themeSelect.addEventListener("change", () => { applyTheme(themeSelect.value); themeSelect.blur(); });
+    skinSelect.addEventListener("change", () => { applySnakeSkin(skinSelect.value); skinSelect.blur(); });
     controlSelect.addEventListener("change", () => { applyControl(controlSelect.value); fit(); controlSelect.blur(); });
     speedSelect.addEventListener("change", () => speedSelect.blur());
     modeSelect.addEventListener("change", () => {
@@ -1220,10 +1312,15 @@ const quotes = [
         modeSelect.blur();
     });
 
-    let savedMood = null, savedControl = null;
-    try { savedMood = localStorage.getItem("dreamyMood"); savedControl = localStorage.getItem("dreamyControl"); } catch (e) {}
+    let savedMood = null, savedControl = null, savedSnakeSkin = null;
+    try {
+        savedMood = localStorage.getItem("dreamyMood");
+        savedControl = localStorage.getItem("dreamyControl");
+        savedSnakeSkin = localStorage.getItem("dreamySnakeSkin");
+    } catch (e) {}
     
     applyTheme(savedMood || "midnight");
+    applySnakeSkin(savedSnakeSkin || "mood");
     resetGame();
     applyControl(savedControl || "buttons"); // Defaults to buttons on first load
     fit();
