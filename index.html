@@ -3,19 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Dreamy Snake - 2 Player Race</title>
+<title>Dreamy Snake</title>
 <meta name="theme-color" content="#172554">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
+    /* ---------- Mood colors (default = Midnight Calm) ---------- */
     body {
         --bg-grad: linear-gradient(135deg, #0b1230 0%, #172554 45%, #2a1b4d 100%);
         --b1: #7c5cff; --b2: #00b4d8; --b3: #ff5fa2; --b4: #3a86ff; --b5: #2de2a6; --blob-op: 0.55;
         --text: #ffffff; --tshadow: 0 2px 4px rgba(0,0,0,0.3);
         --glass-a: rgba(255,255,255,0.18); --glass-b: rgba(255,255,255,0.05); --glass-border: rgba(255,255,255,0.3);
-        --canvas-bg: rgba(10, 15, 35, 0.45); --grid: rgba(255,255,255,0.05);
+        --canvas-bg: rgba(6,10,32,0.65); --grid: rgba(255,255,255,0.045);
         --chip: rgba(0,0,0,0.35); --sel-bg: rgba(255,255,255,0.18); --opt: #172554;
     }
     body[data-theme="blush"] {
@@ -23,409 +24,1075 @@
         --b1: #ffb3c1; --b2: #ffd6a5; --b3: #fbc2eb; --b4: #cdb4db; --b5: #ffc8dd; --blob-op: 0.8;
         --text: #4a2030; --tshadow: 0 1px 0 rgba(255,255,255,0.6);
         --glass-a: rgba(255,255,255,0.5); --glass-b: rgba(255,255,255,0.22); --glass-border: rgba(255,255,255,0.75);
-        --canvas-bg: rgba(60,25,45,0.45); --grid: rgba(255,255,255,0.07);
+        --canvas-bg: rgba(60,25,45,0.78); --grid: rgba(255,255,255,0.07);
         --chip: rgba(255,255,255,0.55); --sel-bg: rgba(255,255,255,0.7); --opt: #ffd6dc;
     }
     body[data-theme="flower"] {
         --bg-grad: linear-gradient(135deg, #14301f 0%, #25513a 50%, #4a3358 100%);
         --b1: #7bd389; --b2: #ff9ecb; --b3: #ffd6e8; --b4: #a8e6a1; --b5: #c9a7ff; --blob-op: 0.5;
-        --canvas-bg: rgba(8,30,18,0.45); --opt: #25513a;
+        --canvas-bg: rgba(8,30,18,0.66); --opt: #25513a;
     }
     body[data-theme="ocean"] {
         --bg-grad: linear-gradient(135deg, #031c2c 0%, #05405f 50%, #0a6c8f 100%);
         --b1: #00b4d8; --b2: #48cae4; --b3: #0077b6; --b4: #90e0ef; --b5: #3a86ff; --blob-op: 0.5;
-        --canvas-bg: rgba(2,18,34,0.45); --opt: #05405f;
+        --canvas-bg: rgba(2,18,34,0.68); --opt: #05405f;
     }
     body[data-theme="rose"] {
         --bg-grad: linear-gradient(135deg, #34183f 0%, #5e2a55 50%, #8f3f69 100%);
         --b1: #ff8fab; --b2: #fb6f92; --b3: #ffc2d1; --b4: #cdb4db; --b5: #ffafcc; --blob-op: 0.5;
-        --canvas-bg: rgba(36,10,36,0.45); --opt: #5e2a55;
+        --canvas-bg: rgba(36,10,36,0.66); --opt: #5e2a55;
     }
     body[data-theme="iron"] {
         --bg-grad: linear-gradient(135deg, #0e1319 0%, #1c2733 50%, #12302c 100%);
         --b1: #2a9d8f; --b2: #457b9d; --b3: #264653; --b4: #e9c46a; --b5: #3d5a80; --blob-op: 0.45;
-        --canvas-bg: rgba(6,10,14,0.45); --opt: #1c2733;
+        --canvas-bg: rgba(6,10,14,0.72); --opt: #1c2733;
     }
 
+    /* ---------- Page: no scrolling, no zoom ---------- */
     html, body {
-        margin: 0; height: 100%; overflow: hidden; touch-action: none; overscroll-behavior: none;
-        -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        touch-action: none;
+        overscroll-behavior: none;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+        -webkit-tap-highlight-color: transparent;
     }
     body {
-        display: flex; align-items: center; justify-content: center;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg-grad);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: var(--bg-grad);
     }
 
+    /* ---------- Moving background blobs (optimized for smoothness) ---------- */
     .bg { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
     .bg span {
-        position: absolute; border-radius: 50%; filter: blur(40px); opacity: var(--blob-op);
-        animation: floatBlob 18s infinite alternate ease-in-out; will-change: transform;
+        position: absolute; border-radius: 50%;
+        filter: blur(40px);
+        opacity: var(--blob-op);
+        transition: background-color 1.6s ease, opacity 1.6s ease;
+        animation: floatBlob 18s infinite alternate ease-in-out;
+        will-change: transform;
     }
     .bg span:nth-child(1) { width: 45vmax; height: 45vmax; background: var(--b1); top: -12%; left: -10%; }
-    .bg span:nth-child(2) { width: 38vmax; height: 38vmax; background: var(--b2); top: 35%; right: -12%; animation-duration: 24s; }
-    .bg span:nth-child(3) { width: 34vmax; height: 34vmax; background: var(--b3); bottom: -14%; left: 15%; animation-duration: 21s; }
+    .bg span:nth-child(2) { width: 38vmax; height: 38vmax; background: var(--b2); top: 35%; right: -12%; animation-duration: 24s; animation-delay: -6s; }
+    .bg span:nth-child(3) { width: 34vmax; height: 34vmax; background: var(--b3); bottom: -14%; left: 15%; animation-duration: 21s; animation-delay: -3s; }
+    .bg span:nth-child(4) { width: 28vmax; height: 28vmax; background: var(--b4); top: 8%; right: 25%; animation-duration: 27s; animation-delay: -10s; }
+    .bg span:nth-child(5) { width: 24vmax; height: 24vmax; background: var(--b5); bottom: 5%; right: 8%; animation-duration: 30s; animation-delay: -14s; }
     @keyframes floatBlob {
-        0% { transform: translate(0, 0) scale(1); }
-        50% { transform: translate(6vmax, -5vmax) scale(1.1); }
+        0%   { transform: translate(0, 0) scale(1); }
+        50%  { transform: translate(6vmax, -5vmax) scale(1.1); }
         100% { transform: translate(-5vmax, 6vmax) scale(0.95); }
     }
 
+    /* ---------- Glass card sized to screen ---------- */
     .game-container {
-        margin-top: 5px; position: relative; display: flex; flex-direction: column; box-sizing: border-box;
-        width: min(calc(100vw - 12px), 580px); height: calc(100vh - 10px); height: min(calc(100dvh - 10px), 880px);
-        padding: 10px; background: linear-gradient(135deg, var(--glass-a), var(--glass-b));
-        backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-        border: 1px solid var(--glass-border); border-radius: 24px;
+        margin-top: 10px;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        box-sizing: border-box;
+        width: min(calc(100vw - 16px), 620px);
+        height: calc(100vh - 16px);
+        height: min(calc(100dvh - 16px), 900px);
+        padding: 12px;
+        background: linear-gradient(135deg, var(--glass-a), var(--glass-b));
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 28px;
         box-shadow: 0 20px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.45);
         text-align: center;
+        transition: box-shadow 0.3s ease;
     }
+    .game-container.hit { box-shadow: 0 0 0 4px rgba(255,77,77,0.55), 0 20px 40px rgba(255,77,77,0.3); }
+    .game-container.bonus { box-shadow: 0 0 0 4px rgba(120,255,170,0.6), 0 20px 40px rgba(120,255,170,0.3); }
 
     .header-bar {
         flex: none; display: flex; justify-content: space-between; align-items: center;
-        margin-bottom: 6px; color: var(--text); font-weight: bold; text-shadow: var(--tshadow); font-size: 15px;
+        margin-bottom: 8px; color: var(--text); font-weight: bold; text-shadow: var(--tshadow);
+    }
+    .score-board { font-size: 19px; }
+    .lives-board {
+        font-size: 17px; background: var(--chip); border: 1px solid var(--glass-border);
+        padding: 4px 11px; border-radius: 12px; display: flex; gap: 4px; align-items: center;
+    }
+    .heart { display: inline-block; }
+    .lives-board.wave .heart { animation: heartWave 0.8s ease-in-out 2; }
+    .lives-board.wave .heart:nth-child(2) { animation-delay: 0.12s; }
+    .lives-board.wave .heart:nth-child(3) { animation-delay: 0.24s; }
+    @keyframes heartWave {
+        0%, 100% { transform: translateY(0) scale(1); }
+        50% { transform: translateY(-7px) scale(1.3); }
     }
 
     .controls-bar {
         flex: none; display: flex; justify-content: center; align-items: center; flex-wrap: wrap;
-        gap: 6px; margin-bottom: 6px; color: var(--text); font-size: 11px; font-weight: 600;
+        gap: 8px; margin-bottom: 8px; color: var(--text); font-size: 13px; font-weight: 600;
     }
     select {
         background: var(--sel-bg); border: 1px solid var(--glass-border); color: var(--text);
-        padding: 3px 6px; border-radius: 8px; font-weight: bold; font-size: 11px; outline: none; cursor: pointer;
+        padding: 5px 8px; border-radius: 10px; font-weight: bold; font-size: 13px; outline: none; cursor: pointer;
     }
     select option { background: var(--opt); color: var(--text); }
+    @media (max-width: 480px) { .controls-bar span { display: none; } }
 
+    /* ---------- Playable area ---------- */
     .stage { flex: 1 1 0; min-height: 0; display: flex; align-items: center; justify-content: center; }
-    .board { position: relative; width: 280px; height: 280px; }
+    .board { position: relative; width: 300px; height: 300px; }
     canvas {
-        width: 100%; height: 100%; display: block; 
+        width: 100%; height: 100%; display: block;
         background-color: var(--canvas-bg);
-        backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-        background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-        background-size: 6% 6%; border: 1px solid rgba(255,255,255,0.22); border-radius: 16px; box-sizing: border-box;
-        box-shadow: inset 0 0 20px rgba(0,0,0,0.25);
+        background-image:
+            linear-gradient(var(--grid) 1px, transparent 1px),
+            linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+        background-size: 5% 5%;
+        border: 1px solid rgba(255,255,255,0.18);
+        border-radius: 18px; box-sizing: border-box;
+        box-shadow: inset 0 0 20px rgba(0,0,0,0.3);
     }
 
     .overlay-msg {
         position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9);
         width: 80%; box-sizing: border-box; background: rgba(0,0,0,0.85); color: #fff;
-        padding: 14px 16px; border-radius: 16px; font-size: clamp(13px, 3.8vw, 16px); font-weight: 700; line-height: 1.4;
+        padding: 16px 18px; border-radius: 18px; font-size: clamp(15px, 4.4vw, 20px); font-weight: 700; line-height: 1.4;
         pointer-events: none; opacity: 0; transition: opacity 0.3s ease, transform 0.3s ease;
-        border: 1px solid rgba(255,255,255,0.2); z-index: 10;
+        border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 10px 30px rgba(0,0,0,0.4); z-index: 10;
     }
     .overlay-msg.active { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    #start-hint { background: rgba(0,0,0,0.65); font-size: clamp(13px, 3.8vw, 16px); }
 
     #game-over {
-        position: absolute; inset: 0; background: rgba(0,0,0,0.85); border-radius: 16px;
-        display: none; flex-direction: column; align-items: center; justify-content: center;
-        color: #fff; z-index: 20; padding: 12px; box-sizing: border-box;
+        position: absolute; inset: 0; background: rgba(0,0,0,0.82);
+        border-radius: 18px; display: none; flex-direction: column; align-items: center; justify-content: center;
+        color: #fff; z-index: 20; padding: 16px; box-sizing: border-box;
     }
-    #game-over h2 { font-size: clamp(20px, 5.5vw, 26px); margin: 0 0 6px; color: #ffd166; }
-    #winner-announcement { font-size: 16px; color: #2de2a6; font-weight: bold; margin-bottom: 8px; }
-    .series-score { font-size: 14px; background: rgba(255,255,255,0.15); padding: 5px 10px; border-radius: 10px; margin-bottom: 8px; }
-    #restart-msg { font-size: 12px; background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 12px; }
+    #game-over-quote { font-size: clamp(13px, 3.6vw, 16px); font-weight: 600; color: #ffd166; margin-bottom: 10px; line-height: 1.3; }
+    #game-over h2 { font-size: clamp(24px, 7vw, 32px); margin: 0 0 8px; letter-spacing: 2px; color: #ff4d4d; }
+    .experience-badge { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.3); border-radius: 12px; padding: 7px 14px; margin: 6px 0; font-size: 14px; font-weight: 600; color: #e0fbfc; }
+    .high-score-tag { font-size: 13px; color: rgba(255,255,255,0.85); margin-bottom: 10px; }
+    #restart-msg { font-size: 14px; background: rgba(255,255,255,0.15); padding: 6px 14px; border-radius: 20px; margin: 4px 0 0; }
+    #restart-msg.locked { opacity: 0.55; }
 
-    /* ---------- Optimized Mobile D-Pads: P1 Left, P2 Right ---------- */
-    .pad-wrap { flex: none; display: none; justify-content: space-between; align-items: center; padding: 4px 4px; width: 100%; box-sizing: border-box; }
+    /* ---------- Arrow buttons (Buttons mode) ---------- */
+    .pad-wrap { flex: none; display: none; justify-content: center; padding-top: 10px; }
     body[data-control="buttons"] .pad-wrap { display: flex; }
-    
-    .player-control-box { display: flex; flex-direction: column; align-items: center; width: 44%; }
-    .player-label { font-size: 10px; font-weight: bold; margin-bottom: 3px; letter-spacing: 0.5px; }
-    
-    .d-pad-grid {
+    .d-pad {
+        --bs: clamp(56px, 16vw, 74px);
         display: grid;
-        grid-template-columns: repeat(3, 44px);
-        grid-template-rows: repeat(2, 40px);
-        gap: 4px;
-        justify-content: center;
+        grid-template-columns: repeat(3, var(--bs));
+        grid-template-rows: repeat(2, var(--bs));
+        gap: 10px;
     }
     .d-btn {
-        background: rgba(255,255,255,0.22); border: 1px solid rgba(255,255,255,0.45); border-radius: 10px;
-        color: var(--text); font-size: 16px; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer;
+        background: rgba(255,255,255,0.22); border: 1px solid rgba(255,255,255,0.45);
+        border-radius: 18px; color: var(--text); font-size: 26px; font-weight: bold;
+        display: flex; align-items: center; justify-content: center; cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.4);
+        transition: transform 0.05s ease, background 0.05s ease;
     }
-    .d-btn:active { background: rgba(255,255,255,0.5); transform: scale(0.95); }
-    
-    .btn-up { grid-column: 2; grid-row: 1; }
-    .btn-left { grid-column: 1; grid-row: 2; }
-    .btn-down { grid-column: 2; grid-row: 2; }
-    .btn-right { grid-column: 3; grid-row: 2; }
+    .d-btn:active { transform: scale(0.92); background: rgba(255,255,255,0.45); }
+    .up-btn { grid-column: 2; grid-row: 1; }
+    .left-btn { grid-column: 1; grid-row: 2; }
+    .down-btn { grid-column: 2; grid-row: 2; }
+    .right-btn { grid-column: 3; grid-row: 2; }
+
+    /* ---------- Floating joystick ---------- */
+    #joy {
+        position: fixed; width: 130px; height: 130px; margin: -65px 0 0 -65px; border-radius: 50%;
+        background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.35);
+        box-shadow: 0 0 25px rgba(0,0,0,0.15);
+        opacity: 0; transform: scale(0.8); transition: opacity 0.12s ease, transform 0.12s ease;
+        pointer-events: none; z-index: 50;
+    }
+    #joy.on { opacity: 1; transform: scale(1); }
+    #knob {
+        position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; border-radius: 50%;
+        background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.85), rgba(255,255,255,0.35));
+        box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        transform: translate(-50%, -50%);
+    }
+
+    @media (prefers-reduced-motion: reduce) { .bg span { animation: none; } }
+
+    /* ---------- Friend mode additions ---------- */
+    .friend-score { display: none; }
+    body[data-mode="friend"] .friend-score { display: block; }
+    body[data-mode="friend"] #lives { display: none; }
+    body[data-mode="friend"] .pad-wrap { display: none !important; }
+    body[data-mode="friend"] #board { touch-action: none; }
+    .friend-touch-hint {
+        display: none; position: absolute; inset: 0; z-index: 5;
+        pointer-events: none; color: rgba(255,255,255,0.78);
+        font-size: clamp(10px, 2.7vw, 13px); font-weight: 700;
+        text-shadow: 0 1px 4px #000; letter-spacing: .4px;
+    }
+    body[data-mode="friend"] .friend-touch-hint { display: block; }
+    .friend-touch-hint .p1-zone, .friend-touch-hint .p2-zone {
+        position: absolute; left: 0; right: 0; height: 50%;
+        display: flex; align-items: center; justify-content: center;
+        background: linear-gradient(180deg, rgba(255,105,180,.055), transparent);
+    }
+    .friend-touch-hint .p1-zone { top: 0; border-bottom: 1px dashed rgba(255,255,255,.22); }
+    .friend-touch-hint .p2-zone {
+        bottom: 0; transform: rotate(180deg);
+        background: linear-gradient(180deg, rgba(70,160,255,.055), transparent);
+    }
+    .friend-touch-hint span {
+        padding: 5px 9px; border-radius: 12px;
+        background: rgba(0,0,0,.22);
+    }
+    body[data-mode="friend"] .score-board { font-size: clamp(13px, 3.7vw, 18px); }
+    @media (max-width: 480px) {
+        body[data-mode="friend"] .controls-bar { gap: 5px; }
+        body[data-mode="friend"] .controls-bar select { padding: 5px 6px; font-size: 12px; }
+    }
+
+
+    /* Friend mode: responsive rectangular board and per-player controls */
+    body[data-mode="friend"] .board { max-width: 100%; max-height: 100%; }
+    .friend-pad {
+        display: none; position: absolute; z-index: 8;
+        pointer-events: none; align-items: center; gap: 5px;
+        padding: 5px 7px; border-radius: 14px;
+        background: rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.2);
+        backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    }
+    body[data-mode="friend"][data-control="buttons"] .friend-pad {
+        display: flex; pointer-events: auto;
+    }
+    .p1-pad { top: 7px; left: 7px; }
+    .p2-pad { bottom: 7px; right: 7px; flex-direction: row-reverse; }
+    .friend-pad-label { color: #fff; font-size: 10px; font-weight: 800; white-space: nowrap; }
+    .mini-dpad { display: grid; grid-template-columns: repeat(3, 29px); grid-template-rows: repeat(2, 27px); gap: 2px; }
+    .mini-btn {
+        border: 1px solid rgba(255,255,255,.55); border-radius: 7px;
+        background: rgba(255,255,255,.22); color: white;
+        font-size: 13px; font-weight: 800; padding: 0; touch-action: none; cursor: pointer;
+    }
+    .mini-btn:nth-child(1) { grid-column: 2; grid-row: 1; }
+    .mini-btn:nth-child(2) { grid-column: 1; grid-row: 2; }
+    .mini-btn:nth-child(3) { grid-column: 2; grid-row: 2; }
+    .mini-btn:nth-child(4) { grid-column: 3; grid-row: 2; }
+    .mini-btn:active { background: rgba(255,255,255,.55); transform: scale(.94); }
+    .friend-virtual-joy {
+        position: absolute; width: 112px; height: 112px; margin: -56px 0 0 -56px;
+        border-radius: 50%; z-index: 15; pointer-events: none;
+        background: rgba(255,255,255,.14); border: 2px solid rgba(255,255,255,.58);
+        box-shadow: 0 0 22px rgba(0,0,0,.24);
+    }
+    .friend-virtual-joy .friend-joy-knob {
+        position: absolute; left: 50%; top: 50%; width: 48px; height: 48px;
+        margin: -24px; border-radius: 50%;
+        background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.95), rgba(255,255,255,.38));
+        box-shadow: 0 3px 10px rgba(0,0,0,.25);
+    }
+    body[data-mode="friend"][data-control="keys"] .friend-pad,
+    body[data-mode="friend"][data-control="joystick"] .friend-pad { display: none !important; }
+    @media (max-width: 600px) {
+        .friend-pad { transform: scale(.92); transform-origin: top left; }
+        .p2-pad { transform-origin: bottom right; }
+        .friend-virtual-joy { width: 104px; height: 104px; margin: -52px 0 0 -52px; }
+    }
+
 </style>
 </head>
-<body data-control="buttons">
+<body data-control="buttons" data-mode="solo">
 
-<div class="bg"><span></span><span></span><span></span></div>
+<div class="bg"><span></span><span></span><span></span><span></span><span></span></div>
 
 <div class="game-container" id="container">
-    <div class="header-bar" id="hud">
-        <div id="hud-p1" style="color: #00ffff;">🟦 P1: <span id="score1">0</span>/25</div>
-        <div id="hud-center" style="font-size: 13px;">⚡ Race to 25!</div>
-        <div id="hud-p2" style="color: #ff70a6;">🟪 P2: <span id="score2">0</span>/25</div>
+    <div class="header-bar">
+        <div class="score-board" id="score-board">🐍 Score: <span id="score">0</span></div>
+        <div class="score-board friend-score" id="player2-score">💙 P2: <span id="score2">0</span></div>
+        <div class="lives-board" id="lives"></div>
     </div>
 
     <div class="controls-bar">
-        <span>Mode:</span>
-        <select id="modeSelect">
-            <option value="solo">🐍 Solo Mode</option>
-            <option value="duo" selected>⚔️ 2-Player Race</option>
+        <span>Speed:</span>
+        <select id="speedSelect" aria-label="Speed">
+            <option value="7">🐢 Easy</option>
+            <option value="5" selected>🐍 Medium</option>
+            <option value="3">⚡ Hard</option>
         </select>
         <span>Mood:</span>
-        <select id="themeSelect">
+        <select id="themeSelect" aria-label="Mood">
             <option value="midnight">🌙 Midnight Calm</option>
+            <option value="blush">🌸 Blush Dawn</option>
+            <option value="flower">🌷 Flower Garden</option>
             <option value="ocean">🌊 Ocean Breeze</option>
+            <option value="rose">💖 Rose Quartz</option>
             <option value="iron">⚡ Iron Focus</option>
+        </select>
+        <span>Controls:</span>
+        <select id="controlSelect" aria-label="Controls">
+            <option value="buttons">🎮 Buttons</option>
+            <option value="joystick">🕹️ Joystick</option>
+            <option value="keys">⌨️ Keys</option>
+        </select>
+        <span>Mode:</span>
+        <select id="modeSelect" aria-label="Game mode">
+            <option value="solo">🐍 Solo</option>
+            <option value="friend">👫 Friend</option>
         </select>
     </div>
 
     <div class="stage" id="stage">
         <div class="board" id="board">
             <canvas id="game" width="400" height="400"></canvas>
-            <div id="start-hint" class="overlay-msg active">Race to 25 balls! Tap any button to start.</div>
+
+            <div class="friend-pad p1-pad" aria-label="Player 1 direction buttons">
+                <div class="friend-pad-label">🩷 P1</div>
+                <div class="mini-dpad">
+                    <button class="mini-btn" data-player="1" data-dir="U">▲</button>
+                    <button class="mini-btn" data-player="1" data-dir="L">◀</button>
+                    <button class="mini-btn" data-player="1" data-dir="D">▼</button>
+                    <button class="mini-btn" data-player="1" data-dir="R">▶</button>
+                </div>
+            </div>
+            <div class="friend-pad p2-pad" aria-label="Player 2 direction buttons">
+                <div class="friend-pad-label">💙 P2</div>
+                <div class="mini-dpad">
+                    <button class="mini-btn" data-player="2" data-dir="U">▲</button>
+                    <button class="mini-btn" data-player="2" data-dir="L">◀</button>
+                    <button class="mini-btn" data-player="2" data-dir="D">▼</button>
+                    <button class="mini-btn" data-player="2" data-dir="R">▶</button>
+                </div>
+            </div>
+
+            <div class="friend-touch-hint" aria-hidden="true">
+                <div class="p1-zone"><span>🩷 PLAYER 1 · Upper half</span></div>
+                <div class="p2-zone"><span>💙 PLAYER 2 · Lower half</span></div>
+            </div>
+            <div id="start-hint" class="overlay-msg active"></div>
+            <div id="motivation-popup" class="overlay-msg"></div>
             <div id="game-over">
-                <h2 id="go-title">🏆 VICTORY!</h2>
-                <div id="winner-announcement"></div>
-                <div class="series-score" id="series-score-text">Match Score: P1 [0] - [0] P2</div>
-                <p id="restart-msg">Tap or press key for next race</p>
+                <div id="game-over-quote"></div>
+                <h2 id="game-over-title">GAME OVER</h2>
+                <div class="experience-badge" id="exp-badge"></div>
+                <div class="high-score-tag">⭐ High Score: <span id="high-score">0</span></div>
+                <p id="restart-msg" class="locked"></p>
             </div>
         </div>
     </div>
 
-    <!-- P1 Left / P2 Right Clean Split D-Pads -->
     <div class="pad-wrap">
-        <div class="player-control-box">
-            <div class="player-label" style="color: #00ffff;">PLAYER 1 (Blue - W/A/S/D)</div>
-            <div class="d-pad-grid">
-                <div class="d-btn btn-up" data-p="1" data-dir="U">▲</div>
-                <div class="d-btn btn-left" data-p="1" data-dir="L">◀</div>
-                <div class="d-btn btn-down" data-p="1" data-dir="D">▼</div>
-                <div class="d-btn btn-right" data-p="1" data-dir="R">▶</div>
-            </div>
-        </div>
-        <div class="player-control-box">
-            <div class="player-label" style="color: #ff70a6;">PLAYER 2 (Pink - Arrows)</div>
-            <div class="d-pad-grid">
-                <div class="d-btn btn-up" data-p="2" data-dir="U">▲</div>
-                <div class="d-btn btn-left" data-p="2" data-dir="L">◀</div>
-                <div class="d-btn btn-down" data-p="2" data-dir="D">▼</div>
-                <div class="d-btn btn-right" data-p="2" data-dir="R">▶</div>
-            </div>
+        <div class="d-pad">
+            <div class="d-btn up-btn" data-dir="U">▲</div>
+            <div class="d-btn left-btn" data-dir="L">◀</div>
+            <div class="d-btn down-btn" data-dir="D">▼</div>
+            <div class="d-btn right-btn" data-dir="R">▶</div>
         </div>
     </div>
 </div>
 
+<div id="joy"><div id="knob"></div></div>
+
 <script>
     const canvas = document.getElementById("game");
-    const ctx = canvas.getContext("2d", { alpha: false });
+    const ctx = canvas.getContext("2d", { alpha: false }); // Optimized for performance
+    const container = document.getElementById("container");
     const stage = document.getElementById("stage");
     const board = document.getElementById("board");
-    const score1El = document.getElementById("score1");
-    const score2El = document.getElementById("score2");
-    const modeSelect = document.getElementById("modeSelect");
+    const scoreEl = document.getElementById("score");
+    const livesEl = document.getElementById("lives");
+    const speedSelect = document.getElementById("speedSelect");
     const themeSelect = document.getElementById("themeSelect");
+    const controlSelect = document.getElementById("controlSelect");
+    const modeSelect = document.getElementById("modeSelect");
+    const score2El = document.getElementById("score2");
+    const gameOverTitleEl = document.getElementById("game-over-title");
+    const popupEl = document.getElementById("motivation-popup");
     const hintEl = document.getElementById("start-hint");
     const gameOverEl = document.getElementById("game-over");
-    const winnerAnnounceEl = document.getElementById("winner-announcement");
-    const seriesScoreText = document.getElementById("series-score-text");
+    const gameOverQuoteEl = document.getElementById("game-over-quote");
+    const expBadgeEl = document.getElementById("exp-badge");
+    const highScoreEl = document.getElementById("high-score");
+    const restartMsgEl = document.getElementById("restart-msg");
 
     const grid = 20;
-    const TARGET_BALLS = 25;
-    let gameMode = "duo";
-    let score1 = 0, score2 = 0;
-    let seriesWins1 = 0, seriesWins2 = 0;
-    let started = false, isGameOver = false;
-    let count = 0;
-    let inputQueue1 = [], inputQueue2 = [];
+    const MAX_LIVES = 3;
+    const HIT_PAUSE_MS = 2000;
+    const GAME_OVER_LOCK_MS = 4000;
+    const BONUS_EVERY = 25;
 
-    let snake1 = { x: 80, y: 160, dx: grid, dy: 0, cells: [], maxCells: 4 };
-    let snake2 = { x: 300, y: 160, dx: -grid, dy: 0, cells: [], maxCells: 4 };
-    let ball = { x: 200, y: 200 };
+    let score = 0, highScore = 0, lives = MAX_LIVES;
+    let count = 0, totalEaten = 0;
+    let started = false, isGameOver = false;
+    let pauseUntil = 0, gameOverUnlockAt = 0;
+    let nextBonusAt = BONUS_EVERY, nextMilestoneEaten = 7;
+    let unusedQuotes = [], inputQueue = [], popupTimer = null;
+    let controlMode = "buttons";
+    let friendMode = false;
+    let dualStarted = false;
+    let dualOver = false;
+    let dualCount = 0;
+    let dualWinner = 0;
+    let dualInput1 = [], dualInput2 = [];
+    const player1 = { x: 100, y: 200, dx: grid, dy: 0, cells: [], maxCells: 4, score: 0 };
+    const player2 = { x: 300, y: 200, dx: -grid, dy: 0, cells: [], maxCells: 4, score: 0 };
+
+    const snake = { x: 160, y: 160, dx: grid, dy: 0, cells: [], maxCells: 4 };
+    const ball = { x: 320, y: 320 };
+
+    const gameOverMessages = [
+        "✨ Every restart is a fresh path forward.",
+        "🌱 Experience gained. Growth continues naturally.",
+        "🌅 Not an end, just a beautiful new beginning.",
+        "💡 Mistakes build mastery. Take a breath & try again!",
+        "🚀 Your journey isn't over, you're starting with experience.",
+        "🎨 Every attempt paints a wiser player.",
+        "🌟 Falling is just proof that you are climbing higher.",
+        "🧘 Serenity isn't avoiding loss, but rising calmly.",
+        "⚡ Every pause brings stronger focus.",
+        "🏆 Victory belongs to the persistent heart."
+    ];
+
+    const quotes = [
+        "Calmness is true strength.", "Peace begins within you.", "Stay grounded. Keep growing.",
+        "Let life unfold naturally.", "A quiet mind wins.", "Choose peace over chaos.",
+        "Breathe. Trust. Keep moving.", "Stillness holds its own power.", "Protect your inner peace.",
+        "Grace in every moment.",
+        "Every storm eventually passes.", "The sky clears again.", "Trust the changing seasons.",
+        "Even storms make way.", "Better days are unfolding.", "Let the clouds pass.",
+        "The sun always returns.", "Every ending opens doors.", "Grow through every season.",
+        "Trust the journey ahead.",
+        "Know yourself. Trust yourself.", "Your time will come.", "Walk with quiet confidence.",
+        "Believe in your becoming.", "Become who you envision.", "Let your growth speak.",
+        "Keep your standards high.", "You are becoming enough.", "Confidence needs no announcement.",
+        "Trust what you bring.",
+        "Patience makes room for greatness.", "Small steps create wonders.", "Let consistency shape success.",
+        "Focus brings things together.", "Good things take their time.", "Stay present. Keep progressing.",
+        "Inner peace, outer progress.", "The journey has meaning.", "Success begins with clarity.",
+        "Calm mind. Limitless possibilities."
+    ];
 
     const THEMES = {
-        midnight: { bg: "rgba(6,10,32,0.45)", glow: "#ff3b6b" },
-        ocean: { bg: "rgba(2,18,34,0.45)", glow: "#90e0ef" },
-        iron: { bg: "rgba(6,10,14,0.45)", glow: "#e9c46a" }
+        midnight: { base: 0,   span: 360, step: 20, sat: 80, light: 60, food: null, glow: "#ff3b6b" },
+        blush:    { base: 320, span: 80,  step: 8,  sat: 85, light: 68, food: null, glow: "#ff6b8b" },
+        flower:   { base: 100, span: 260, step: 14, sat: 70, light: 66, food: "🌸", glow: "#ff9ecb" },
+        ocean:    { base: 160, span: 90,  step: 8,  sat: 80, light: 62, food: "🐚", glow: "#90e0ef" },
+        rose:     { base: 300, span: 80,  step: 8,  sat: 85, light: 70, food: "💖", glow: "#ff8fab" },
+        iron:     { base: 30,  span: 160, step: 12, sat: 75, light: 58, food: "⚡", glow: "#e9c46a" }
     };
-    let currentTheme = THEMES.midnight;
+    let theme = THEMES.midnight;
 
+    const now = () => performance.now();
+    const isPaused = () => now() < pauseUntil;
+
+    /* ---------- Responsive sizing ---------- */
     function fit() {
-        const s = Math.floor(Math.min(stage.clientWidth, stage.clientHeight));
-        if (s > 80) { board.style.width = s + "px"; board.style.height = s + "px"; }
+        const mobile = window.matchMedia("(max-width: 600px)").matches;
+        const ratio = mobile ? 0.86 : 1.20; // width / height
+        const w = Math.floor(Math.min(stage.clientWidth, stage.clientHeight * ratio));
+        const h = Math.floor(w / ratio);
+        if (w > 100 && h > 100) {
+            board.style.width = w + "px";
+            board.style.height = h + "px";
+            const cols = mobile ? 20 : 24;
+            const rows = mobile ? 23 : 20;
+            if (canvas.width !== cols * grid || canvas.height !== rows * grid) {
+                canvas.width = cols * grid;
+                canvas.height = rows * grid;
+                if (friendMode) placeFriendFood();
+                else placeBall();
+            }
+        }
     }
     new ResizeObserver(fit).observe(stage);
     window.addEventListener("resize", fit);
+    window.addEventListener("orientationchange", () => setTimeout(fit, 100));
 
-    function resetGame() {
-        score1 = 0; score2 = 0;
-        score1El.innerText = score1;
-        score2El.innerText = score2;
-        
-        snake1.x = 80; snake1.y = 160; snake1.dx = grid; snake1.dy = 0; snake1.maxCells = 4;
-        snake1.cells = [0, 1, 2, 3].map(i => ({ x: 80 - i * grid, y: 160 }));
-        
-        if (gameMode === "duo") {
-            snake2.x = 300; snake2.y = 160; snake2.dx = -grid; snake2.dy = 0; snake2.maxCells = 4;
-            snake2.cells = [0, 1, 2, 3].map(i => ({ x: 300 + i * grid, y: 160 }));
+    /* ---------- Hearts & milestones ---------- */
+    function renderHearts(wave) {
+        let html = "";
+        for (let i = 0; i < MAX_LIVES; i++) html += `<span class="heart">${i < lives ? "❤️" : "🖤"}</span>`;
+        livesEl.innerHTML = html;
+        livesEl.classList.remove("wave");
+        if (wave) {
+            void livesEl.offsetWidth;
+            livesEl.classList.add("wave");
+            setTimeout(() => livesEl.classList.remove("wave"), HIT_PAUSE_MS);
         }
-
-        inputQueue1 = []; inputQueue2 = [];
-        isGameOver = false; started = false;
-        gameOverEl.style.display = "none";
-        hintEl.innerText = gameMode === "duo" ? "P1: W/A/S/D | P2: Arrow Keys (Race to 25!)" : "Use arrow keys or buttons to start (Goal: 25)";
-        hintEl.classList.add("active");
-        placeBall();
     }
+
+    function getNextMilestoneTarget(eaten) {
+        if (eaten === 0) return 7;
+        if (eaten === 7) return 16;
+        if (eaten === 16) return 19;
+        if (eaten === 19) return 25;
+        return eaten + Math.floor(Math.random() * 4) + 6; // random gap between 6 and 9
+    }
+
+    function scheduleMilestone() {
+        nextMilestoneEaten = getNextMilestoneTarget(totalEaten);
+    }
+
+    function showPopup(text, ms, glowClass) {
+        pauseUntil = now() + ms;
+        popupEl.innerText = text;
+        popupEl.classList.add("active");
+        if (glowClass) container.classList.add(glowClass);
+        clearTimeout(popupTimer);
+        popupTimer = setTimeout(() => {
+            popupEl.classList.remove("active");
+            container.classList.remove("bonus");
+        }, ms);
+    }
+
+    function showQuote() {
+        if (unusedQuotes.length === 0) unusedQuotes = [...quotes];
+        const i = Math.floor(Math.random() * unusedQuotes.length);
+        showPopup(unusedQuotes.splice(i, 1)[0], 3500);
+    }
+
+    function loseLife(hitIndex) {
+        lives--;
+        try { if (navigator.vibrate) navigator.vibrate(50); } catch (e) {}
+        if (lives <= 0) { renderHearts(false); triggerGameOver(); return; }
+        snake.cells = snake.cells.slice(0, Math.max(4, hitIndex));
+        snake.maxCells = snake.cells.length;
+        inputQueue = [];
+        pauseUntil = now() + HIT_PAUSE_MS;
+        renderHearts(true);
+        container.classList.add("hit");
+        setTimeout(() => container.classList.remove("hit"), HIT_PAUSE_MS);
+    }
+
+    function triggerGameOver() {
+        isGameOver = true;
+        if (score > highScore) highScore = score;
+        highScoreEl.innerText = highScore;
+        gameOverQuoteEl.innerText = gameOverMessages[Math.floor(Math.random() * gameOverMessages.length)];
+        let badge = "🎖️ Experience: Mindful Explorer";
+        if (totalEaten >= 25) badge = "🏅 Experience: Master of Calm";
+        else if (totalEaten >= 15) badge = "🥇 Experience: Steady Climber";
+        else if (totalEaten >= 7) badge = "🥈 Experience: Focused Learner";
+        expBadgeEl.innerText = badge;
+        gameOverUnlockAt = now() + GAME_OVER_LOCK_MS;
+        inputQueue = [];
+        gameOverEl.style.display = "flex";
+    }
+
+    function updateGameOverText() {
+        const left = gameOverUnlockAt - now();
+        if (left > 0) {
+            restartMsgEl.classList.add("locked");
+            restartMsgEl.innerText = "Restart available in " + Math.ceil(left / 1000) + "…";
+        } else {
+            restartMsgEl.classList.remove("locked");
+            restartMsgEl.innerText = "Press any key or tap to restart";
+        }
+    }
+
+    function getRandomInt(min, max) { return Math.floor(Math.random() * (max - min)) + min; }
 
     function placeBall() {
         let x, y, tries = 0;
         do {
-            x = Math.floor(Math.random() * (canvas.width / grid)) * grid;
-            y = Math.floor(Math.random() * (canvas.height / grid)) * grid;
+            x = getRandomInt(0, canvas.width / grid) * grid;
+            y = getRandomInt(0, canvas.height / grid) * grid;
             tries++;
-        } while (tries < 100 && (
-            snake1.cells.some(c => c.x === x && c.y === y) ||
-            (gameMode === "duo" && snake2.cells.some(c => c.x === x && c.y === y))
-        ));
+        } while (tries < 100 && snake.cells.some(c => c.x === x && c.y === y));
         ball.x = x; ball.y = y;
     }
 
-    function declareWinner(winnerNum) {
-        isGameOver = true;
-        if (winnerNum === 1) seriesWins1++;
-        else if (winnerNum === 2) seriesWins2++;
+    function startHintText() {
+        if (controlMode === "joystick") return "Touch the screen and slide to move. Slide to start!";
+        if (controlMode === "buttons") return "Tap an arrow button to start";
+        return "Press an arrow key or W A S D to start";
+    }
 
-        winnerAnnounceEl.innerText = gameMode === "solo" ? `🎉 You reached 25 balls!` : `🎉 Player ${winnerNum} reached 25 balls first!`;
-        seriesScoreText.innerText = `Match Score: P1 [${seriesWins1}] - [${seriesWins2}] P2`;
+    function resetGame() {
+        if (friendMode) { resetFriendGame(); return; }
+        livesEl.style.display = "flex";
+        score2El.parentElement.style.display = "none";
+        expBadgeEl.style.display = "block";
+        highScoreEl.parentElement.style.display = "block";
+        gameOverTitleEl.innerText = "GAME OVER";
+        gameOverTitleEl.style.color = "#ff4d4d";
+        score = 0; lives = MAX_LIVES; totalEaten = 0; nextBonusAt = BONUS_EVERY;
+        unusedQuotes = [...quotes];
+        nextMilestoneEaten = 7;
+        scoreEl.innerText = score;
+        renderHearts(false);
+        snake.x = 160; snake.y = 160; snake.dx = grid; snake.dy = 0; snake.maxCells = 4;
+        snake.cells = [0, 1, 2, 3].map(i => ({ x: 160 - i * grid, y: 160 }));
+        inputQueue = [];
+        isGameOver = false; started = false; pauseUntil = 0;
+        popupEl.classList.remove("active");
+        container.classList.remove("hit", "bonus");
+        gameOverEl.style.display = "none";
+        hintEl.innerText = startHintText();
+        hintEl.classList.add("active");
+        placeBall();
+    }
+
+    function enqueueDirection(dir) {
+        if (friendMode) return;
+        if (isGameOver) {
+            if (now() >= gameOverUnlockAt) resetGame();
+            return;
+        }
+        if (isPaused()) return;
+        if (!started) { started = true; hintEl.classList.remove("active"); }
+        if (inputQueue.length < 3) inputQueue.push(dir);
+    }
+
+
+    /* ---------- Two-player local Friend mode ---------- */
+    const friendCell = (x, y) => ({ x, y });
+    function resetFriendGame() {
+        player1.x = 100; player1.y = 200; player1.dx = grid; player1.dy = 0;
+        player1.cells = [0,1,2,3].map(i => friendCell(100 - i * grid, 200));
+        player1.maxCells = 4; player1.score = 0;
+
+        player2.x = 300; player2.y = 200; player2.dx = -grid; player2.dy = 0;
+        player2.cells = [0,1,2,3].map(i => friendCell(300 + i * grid, 200));
+        player2.maxCells = 4; player2.score = 0;
+
+        dualInput1 = []; dualInput2 = [];
+        dualStarted = false; dualOver = false; dualWinner = 0;
+        isGameOver = false; started = false; pauseUntil = 0; count = 0;
+        score = 0;
+        scoreEl.innerText = "0";
+        score2El.innerText = "0";
+        livesEl.style.display = "none";
+        score2El.parentElement.style.display = "block";
+        popupEl.classList.remove("active");
+        container.classList.remove("hit", "bonus");
+        gameOverEl.style.display = "none";
+        gameOverTitleEl.innerText = "GAME OVER";
+        gameOverQuoteEl.innerText = "First to 20 balls wins!";
+        expBadgeEl.style.display = "none";
+        highScoreEl.parentElement.style.display = "none";
+        restartMsgEl.innerText = "Swipe to play · First to 20 wins";
+        restartMsgEl.classList.remove("locked");
+        hintEl.innerText = controlMode === "keys"
+            ? "P1: W A S D  ·  P2: Arrow keys"
+            : controlMode === "buttons"
+                ? "P1: upper buttons  ·  P2: lower buttons"
+                : "Touch your half and move the joystick";
+        hintEl.classList.add("active");
+        placeFriendFood();
+        drawFriend();
+    }
+
+    function placeFriendFood() {
+        let x, y, tries = 0;
+        const occupied = [...player1.cells, ...player2.cells];
+        do {
+            x = getRandomInt(0, canvas.width / grid) * grid;
+            y = getRandomInt(0, canvas.height / grid) * grid;
+            tries++;
+        } while (tries < 200 && occupied.some(c => c.x === x && c.y === y));
+        ball.x = x; ball.y = y;
+    }
+
+    function queuePlayerDirection(player, dir) {
+        if (isGameOver || dualOver || isPaused()) return;
+        const q = player === 1 ? dualInput1 : dualInput2;
+        if (q.length < 3) q.push(dir);
+        if (!dualStarted) {
+            dualStarted = true;
+            started = true;
+            hintEl.classList.remove("active");
+        }
+    }
+
+    function applyPlayerTurn(p, queue) {
+        if (!queue.length) return;
+        const d = queue.shift();
+        if (d === "L" && p.dx === 0) { p.dx = -grid; p.dy = 0; }
+        if (d === "R" && p.dx === 0) { p.dx = grid; p.dy = 0; }
+        if (d === "U" && p.dy === 0) { p.dx = 0; p.dy = -grid; }
+        if (d === "D" && p.dy === 0) { p.dx = 0; p.dy = grid; }
+    }
+
+    function advancePlayer(p, queue) {
+        applyPlayerTurn(p, queue);
+        p.x += p.dx; p.y += p.dy;
+        if (p.x < 0) p.x = canvas.width - grid;
+        else if (p.x >= canvas.width) p.x = 0;
+        if (p.y < 0) p.y = canvas.height - grid;
+        else if (p.y >= canvas.height) p.y = 0;
+        p.cells.unshift(friendCell(p.x, p.y));
+        if (p.cells.length > p.maxCells) p.cells.pop();
+    }
+
+    function stepFriend() {
+        advancePlayer(player1, dualInput1);
+        advancePlayer(player2, dualInput2);
+
+        // Self-collision and player-to-player collision are deliberately ignored.
+        const p1Ate = player1.x === ball.x && player1.y === ball.y;
+        const p2Ate = player2.x === ball.x && player2.y === ball.y;
+
+        if (p1Ate) { player1.score++; player1.maxCells++; }
+        if (p2Ate) { player2.score++; player2.maxCells++; }
+
+        if (p1Ate || p2Ate) {
+            scoreEl.innerText = player1.score;
+            score2El.innerText = player2.score;
+            placeFriendFood();
+        }
+
+        if (player1.score >= 20 || player2.score >= 20) {
+            if (player1.score >= 20 && player2.score >= 20) finishFriendGame(0);
+            else finishFriendGame(player1.score >= 20 ? 1 : 2);
+        }
+    }
+
+    function finishFriendGame(winner) {
+        dualOver = true; dualWinner = winner; isGameOver = true;
+        gameOverTitleEl.innerText = winner === 0 ? "IT'S A DRAW!" : `PLAYER ${winner} WINS!`;
+        gameOverTitleEl.style.color = winner === 1 ? "#ff8fc7" : winner === 2 ? "#75c7ff" : "#ffd166";
+        gameOverQuoteEl.innerText = `🩷 P1: ${player1.score} balls   ·   💙 P2: ${player2.score} balls`;
+        expBadgeEl.style.display = "none";
+        highScoreEl.parentElement.style.display = "none";
+        restartMsgEl.innerText = "Tap the board to play again";
+        restartMsgEl.classList.remove("locked");
         gameOverEl.style.display = "flex";
     }
 
+    function drawFriendSnake(p, color, darkEye) {
+        const cells = p.cells, n = cells.length, half = grid / 2;
+        if (!n) return;
+        ctx.lineCap = "round";
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 8;
+        for (let i = n - 1; i >= 0; i--) {
+            const c = cells[i], cx = c.x + half, cy = c.y + half;
+            const r = i === 0 ? 10.5 : 9 - 4 * (i / n);
+            if (i < n - 1) {
+                const prev = cells[i + 1];
+                if (Math.abs(prev.x - c.x) <= grid && Math.abs(prev.y - c.y) <= grid) {
+                    ctx.strokeStyle = color; ctx.lineWidth = r * 2;
+                    ctx.beginPath(); ctx.moveTo(prev.x + half, prev.y + half); ctx.lineTo(cx, cy); ctx.stroke();
+                }
+            }
+            ctx.fillStyle = color;
+            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.shadowBlur = 0;
+        const h = cells[0], hx = h.x + half, hy = h.y + half;
+        const ux = Math.sign(p.dx), uy = Math.sign(p.dy), px = -uy, py = ux;
+        for (const side of [-1, 1]) {
+            const ex = hx + ux * 3.5 + px * 4.6 * side;
+            const ey = hy + uy * 3.5 + py * 4.6 * side;
+            ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(ex, ey, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = darkEye; ctx.beginPath(); ctx.arc(ex + ux * .9, ey + uy * .9, 1.5, 0, Math.PI * 2); ctx.fill();
+        }
+    }
+
+    function drawFriend() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawFood();
+        drawFriendSnake(player1, "#ff69b4", "#702044");
+        drawFriendSnake(player2, "#38a8ff", "#073b70");
+    }
+
+    // Independent touch controls for both players.
+    const friendPointers = new Map();
+    const FRIEND_JOY_RADIUS = 34;
+    board.addEventListener("pointerdown", e => {
+        if (!friendMode || e.target.closest(".mini-btn") || e.target.closest("#game-over")) return;
+        if (controlMode === "keys" || controlMode === "buttons") return;
+        e.preventDefault();
+        const rect = board.getBoundingClientRect();
+        const player = (e.clientY - rect.top) < rect.height / 2 ? 1 : 2;
+        const x = e.clientX - rect.left, y = e.clientY - rect.top;
+        const state = { x: e.clientX, y: e.clientY, player, moved: false, lastDir: null, joy: null };
+        if (controlMode === "joystick") {
+            const joyEl = document.createElement("div");
+            joyEl.className = "friend-virtual-joy";
+            joyEl.style.left = x + "px"; joyEl.style.top = y + "px";
+            const knobEl = document.createElement("div");
+            knobEl.className = "friend-joy-knob";
+            joyEl.appendChild(knobEl); board.appendChild(joyEl);
+            state.joy = { el: joyEl, knob: knobEl };
+        }
+        friendPointers.set(e.pointerId, state);
+        try { board.setPointerCapture(e.pointerId); } catch (_) {}
+    });
+    board.addEventListener("pointermove", e => {
+        const state = friendPointers.get(e.pointerId);
+        if (!friendMode || !state) return;
+        const dx = e.clientX - state.x, dy = e.clientY - state.y;
+        if (controlMode === "joystick") {
+            const dist = Math.hypot(dx, dy), limited = Math.min(dist, FRIEND_JOY_RADIUS);
+            const scale = dist > 0 ? limited / dist : 0;
+            state.joy.knob.style.transform = `translate(${dx * scale}px, ${dy * scale}px)`;
+            if (dist >= 13) {
+                const dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "R" : "L") : (dy > 0 ? "D" : "U");
+                if (dir !== state.lastDir) {
+                    state.lastDir = dir;
+                    queuePlayerDirection(state.player, dir);
+                }
+            }
+        } else if (!state.moved && Math.hypot(dx, dy) >= 18) {
+            const dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "R" : "L") : (dy > 0 ? "D" : "U");
+            state.moved = true;
+            queuePlayerDirection(state.player, dir);
+        }
+    });
+    function endFriendPointer(e) {
+        const state = friendPointers.get(e.pointerId);
+        if (state && state.joy) state.joy.el.remove();
+        friendPointers.delete(e.pointerId);
+    }
+    board.addEventListener("pointerup", endFriendPointer);
+    board.addEventListener("pointercancel", endFriendPointer);
+
+    function handleEat() {
+        snake.maxCells++;
+        score += 10;
+        totalEaten++;
+        scoreEl.innerText = score;
+        placeBall();
+        if (totalEaten >= nextBonusAt) {
+            nextBonusAt += BONUS_EVERY;
+            if (lives < MAX_LIVES) {
+                lives++;
+                renderHearts(true);
+                showPopup("💖 Bonus life! Keep going", 2000, "bonus");
+                return;
+            }
+        }
+        if (totalEaten === nextMilestoneEaten) {
+            showQuote();
+            nextMilestoneEaten = getNextMilestoneTarget(totalEaten);
+        }
+    }
+
     function step() {
-        if (inputQueue1.length > 0) {
-            const d = inputQueue1.shift();
-            if (d === 'L' && snake1.dx === 0) { snake1.dx = -grid; snake1.dy = 0; }
-            if (d === 'U' && snake1.dy === 0) { snake1.dy = -grid; snake1.dx = 0; }
-            if (d === 'R' && snake1.dx === 0) { snake1.dx = grid; snake1.dy = 0; }
-            if (d === 'D' && snake1.dy === 0) { snake1.dy = grid; snake1.dx = 0; }
+        if (inputQueue.length > 0) {
+            const d = inputQueue.shift();
+            if (d === 'L' && snake.dx === 0) { snake.dx = -grid; snake.dy = 0; }
+            if (d === 'U' && snake.dy === 0) { snake.dy = -grid; snake.dx = 0; }
+            if (d === 'R' && snake.dx === 0) { snake.dx = grid; snake.dy = 0; }
+            if (d === 'D' && snake.dy === 0) { snake.dy = grid; snake.dx = 0; }
+        }
+        snake.x += snake.dx;
+        snake.y += snake.dy;
+        if (snake.x < 0) snake.x = canvas.width - grid;
+        else if (snake.x >= canvas.width) snake.x = 0;
+        if (snake.y < 0) snake.y = canvas.height - grid;
+        else if (snake.y >= canvas.height) snake.y = 0;
+
+        snake.cells.unshift({ x: snake.x, y: snake.y });
+        if (snake.cells.length > snake.maxCells) snake.cells.pop();
+
+        if (snake.x === ball.x && snake.y === ball.y) handleEat();
+
+        for (let i = 4; i < snake.cells.length; i++) {
+            if (snake.cells[i].x === snake.x && snake.cells[i].y === snake.y) { loseLife(i); break; }
+        }
+    }
+
+    /* ---------- Optimized drawing ---------- */
+    function drawFood() {
+        ctx.fillStyle = theme.glow;
+        if (theme.food) {
+            ctx.font = "18px serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(theme.food, ball.x + grid / 2, ball.y + grid / 2 + 1);
+        } else {
+            ctx.beginPath();
+            ctx.arc(ball.x + grid / 2, ball.y + grid / 2, 8, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    function drawSnake() {
+        const cells = snake.cells, n = cells.length;
+        if (!n) return;
+        const color = i => `hsl(${(theme.base + (i * theme.step)) % 360}, ${theme.sat}%, ${theme.light}%)`;
+        const half = grid / 2;
+        ctx.lineCap = "round";
+
+        for (let i = n - 1; i >= 0; i--) {
+            const c = cells[i];
+            const cx = c.x + half, cy = c.y + half;
+            const r = i === 0 ? 10.5 : 9 - 4 * (i / n);
+            const col = color(i);
+            if (i < n - 1) {
+                const p = cells[i + 1];
+                if (Math.abs(p.x - c.x) <= grid && Math.abs(p.y - c.y) <= grid) {
+                    ctx.strokeStyle = col;
+                    ctx.lineWidth = r * 2;
+                    ctx.beginPath();
+                    ctx.moveTo(p.x + half, p.y + half);
+                    ctx.lineTo(cx, cy);
+                    ctx.stroke();
+                }
+            }
+            ctx.fillStyle = col;
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.fill();
         }
 
-        if (gameMode === "duo" && inputQueue2.length > 0) {
-            const d = inputQueue2.shift();
-            if (d === 'L' && snake2.dx === 0) { snake2.dx = -grid; snake2.dy = 0; }
-            if (d === 'U' && snake2.dy === 0) { snake2.dy = -grid; snake2.dx = 0; }
-            if (d === 'R' && snake2.dx === 0) { snake2.dx = grid; snake2.dy = 0; }
-            if (d === 'D' && snake2.dy === 0) { snake2.dy = grid; snake2.dx = 0; }
+        const h = cells[0], hx = h.x + half, hy = h.y + half;
+        const ux = Math.sign(snake.dx), uy = Math.sign(snake.dy);
+        const px = -uy, py = ux;
+        for (const side of [-1, 1]) {
+            const ex = hx + ux * 3.5 + px * 4.6 * side, ey = hy + uy * 3.5 + py * 4.6 * side;
+            ctx.fillStyle = "#fff";
+            ctx.beginPath(); ctx.arc(ex, ey, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = "#111";
+            ctx.beginPath(); ctx.arc(ex + ux * 0.9, ey + uy * 0.9, 1.5, 0, Math.PI * 2); ctx.fill();
         }
-
-        snake1.x += snake1.dx; snake1.y += snake1.dy;
-        if (snake1.x < 0) snake1.x = canvas.width - grid; else if (snake1.x >= canvas.width) snake1.x = 0;
-        if (snake1.y < 0) snake1.y = canvas.height - grid; else if (snake1.y >= canvas.height) snake1.y = 0;
-        snake1.cells.unshift({ x: snake1.x, y: snake1.y });
-        if (snake1.cells.length > snake1.maxCells) snake1.cells.pop();
-
-        if (gameMode === "duo") {
-            snake2.x += snake2.dx; snake2.y += snake2.dy;
-            if (snake2.x < 0) snake2.x = canvas.width - grid; else if (snake2.x >= canvas.width) snake2.x = 0;
-            if (snake2.y < 0) snake2.y = canvas.height - grid; else if (snake2.y >= canvas.height) snake2.y = 0;
-            snake2.cells.unshift({ x: snake2.x, y: snake2.y });
-            if (snake2.cells.length > snake2.maxCells) snake2.cells.pop();
-        }
-
-        let ballEaten = false;
-        if (snake1.x === ball.x && snake1.y === ball.y) {
-            snake1.maxCells++;
-            score1++;
-            score1El.innerText = score1;
-            ballEaten = true;
-            if (score1 >= TARGET_BALLS) { declareWinner(1); return; }
-        }
-        if (gameMode === "duo" && !ballEaten && snake2.x === ball.x && snake2.y === ball.y) {
-            snake2.maxCells++;
-            score2++;
-            score2El.innerText = score2;
-            ballEaten = true;
-            if (score2 >= TARGET_BALLS) { declareWinner(2); return; }
-        }
-
-        if (ballEaten) placeBall();
     }
 
     function draw() {
-        ctx.fillStyle = currentTheme.bg;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.shadowBlur = 18; ctx.shadowColor = currentTheme.glow;
-        ctx.fillStyle = currentTheme.glow;
-        ctx.beginPath(); ctx.arc(ball.x + grid/2, ball.y + grid/2, 8, 0, Math.PI * 2); ctx.fill();
-        ctx.shadowBlur = 0;
-
-        snake1.cells.forEach((cell, idx) => {
-            ctx.fillStyle = idx === 0 ? "#00b4d8" : "#0077b6";
-            ctx.beginPath(); ctx.arc(cell.x + grid/2, cell.y + grid/2, idx === 0 ? 10 : 8, 0, Math.PI*2); ctx.fill();
-        });
-
-        if (gameMode === "duo") {
-            snake2.cells.forEach((cell, idx) => {
-                ctx.fillStyle = idx === 0 ? "#ff5fa2" : "#b5179e";
-                ctx.beginPath(); ctx.arc(cell.x + grid/2, cell.y + grid/2, idx === 0 ? 10 : 8, 0, Math.PI*2); ctx.fill();
-            });
-        }
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawFood();
+        drawSnake();
     }
 
     function loop() {
         requestAnimationFrame(loop);
-        if (++count < 5) return;
+        if (isGameOver) updateGameOverText();
+        const gameSpeed = parseInt(speedSelect.value);
+        if (++count < gameSpeed) return;
         count = 0;
-        if (!isGameOver && started) step();
-        draw();
+        if (friendMode) {
+            if (!isGameOver && dualStarted && !isPaused()) stepFriend();
+            drawFriend();
+        } else {
+            if (!isGameOver && started && !isPaused()) step();
+            draw();
+        }
     }
 
+    /* ---------- Controls ---------- */
     document.addEventListener("keydown", e => {
-        const k = e.key.toLowerCase();
-        if (["arrowup","arrowdown","arrowleft","arrowright","w","a","s","d"," "].includes(k)) e.preventDefault();
-
-        if (isGameOver) { resetGame(); return; }
-        if (!started) { started = true; hintEl.classList.remove("active"); }
-
-        if (k === "a") inputQueue1.push('L');
-        if (k === "w") inputQueue1.push('U');
-        if (k === "d") inputQueue1.push('R');
-        if (k === "s") inputQueue1.push('D');
-
-        if (gameMode === "duo") {
-            if (k === "arrowleft") inputQueue2.push('L');
-            if (k === "arrowup") inputQueue2.push('U');
-            if (k === "arrowright") inputQueue2.push('R');
-            if (k === "arrowdown") inputQueue2.push('D');
-        } else {
-            if (k === "arrowleft") inputQueue1.push('L');
-            if (k === "arrowup") inputQueue1.push('U');
-            if (k === "arrowright") inputQueue1.push('R');
-            if (k === "arrowdown") inputQueue1.push('D');
+        const key = e.key.toLowerCase();
+        const nav = ["arrowleft", "arrowup", "arrowright", "arrowdown", "w", "a", "s", "d", " "];
+        if (nav.includes(key)) e.preventDefault();
+        if (friendMode) {
+            if (isGameOver) {
+                if (!e.repeat && nav.includes(key)) resetGame();
+                return;
+            }
+            if (key === "a") queuePlayerDirection(1, "L");
+            if (key === "w") queuePlayerDirection(1, "U");
+            if (key === "d") queuePlayerDirection(1, "R");
+            if (key === "s") queuePlayerDirection(1, "D");
+            if (key === "arrowleft") queuePlayerDirection(2, "L");
+            if (key === "arrowup") queuePlayerDirection(2, "U");
+            if (key === "arrowright") queuePlayerDirection(2, "R");
+            if (key === "arrowdown") queuePlayerDirection(2, "D");
+            return;
         }
+        if (isGameOver) {
+            if (!e.repeat && nav.includes(key) && now() >= gameOverUnlockAt) resetGame();
+            return;
+        }
+        if (key === "arrowleft" || key === "a") enqueueDirection("L");
+        if (key === "arrowup" || key === "w") enqueueDirection("U");
+        if (key === "arrowright" || key === "d") enqueueDirection("R");
+        if (key === "arrowdown" || key === "s") enqueueDirection("D");
     });
 
-    document.querySelectorAll(".d-btn").forEach(btn => {
+    document.querySelectorAll(".d-btn, .mini-btn").forEach(btn => {
         btn.addEventListener("pointerdown", e => {
             e.preventDefault();
-            if (!started) { started = true; hintEl.classList.remove("active"); }
-            if (isGameOver) { resetGame(); return; }
-
-            const p = btn.dataset.p;
-            const dir = btn.dataset.dir;
-            if (p === "1") inputQueue1.push(dir);
-            if (p === "2" && gameMode === "duo") inputQueue2.push(dir);
+            if (friendMode && btn.dataset.player) queuePlayerDirection(Number(btn.dataset.player), btn.dataset.dir);
+            else enqueueDirection(btn.dataset.dir);
         });
     });
 
-    modeSelect.addEventListener("change", () => {
-        gameMode = modeSelect.value;
-        document.getElementById("hud-p2").style.display = gameMode === "duo" ? "block" : "none";
-        document.querySelector(".pad-wrap").style.display = gameMode === "duo" ? "flex" : "none";
-        resetGame();
+    const joy = document.getElementById("joy");
+    const knob = document.getElementById("knob");
+    const JOY_R = 40, JOY_DEAD = 14;
+    let joyId = null, ox = 0, oy = 0, lastDir = null;
+
+    document.addEventListener("pointerdown", e => {
+        if (friendMode || controlMode !== "joystick" || joyId !== null) return;
+        if (e.target.closest("select, button, .d-pad, #game-over")) return;
+        joyId = e.pointerId; ox = e.clientX; oy = e.clientY; lastDir = null;
+        joy.style.left = ox + "px"; joy.style.top = oy + "px";
+        knob.style.transform = "translate(-50%, -50%)";
+        joy.classList.add("on");
     });
 
-    themeSelect.addEventListener("change", () => { currentTheme = THEMES[themeSelect.value]; });
+    document.addEventListener("pointermove", e => {
+        if (e.pointerId !== joyId) return;
+        let dx = e.clientX - ox, dy = e.clientY - oy, dist = Math.hypot(dx, dy);
+        if (dist > JOY_R) {
+            const k = (dist - JOY_R) / dist;
+            ox += dx * k; oy += dy * k;
+            dx = e.clientX - ox; dy = e.clientY - oy; dist = JOY_R;
+            joy.style.left = ox + "px"; joy.style.top = oy + "px";
+        }
+        knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+        if (dist >= JOY_DEAD) {
+            const dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "R" : "L") : (dy > 0 ? "D" : "U");
+            if (dir !== lastDir) { lastDir = dir; enqueueDirection(dir); }
+        }
+    });
 
+    function joyEnd(e) {
+        if (e.pointerId !== joyId) return;
+        joyId = null;
+        joy.classList.remove("on");
+    }
+    document.addEventListener("pointerup", joyEnd);
+    document.addEventListener("pointercancel", joyEnd);
+
+    gameOverEl.addEventListener("click", () => { if (isGameOver && now() >= gameOverUnlockAt) resetGame(); });
+
+    document.addEventListener("touchmove", e => e.preventDefault(), { passive: false });
+    document.addEventListener("gesturestart", e => e.preventDefault());
+    document.addEventListener("dblclick", e => e.preventDefault());
+    document.addEventListener("contextmenu", e => e.preventDefault());
+
+    function applyTheme(key) {
+        if (!THEMES[key]) key = "midnight";
+        theme = THEMES[key];
+        document.body.dataset.theme = key;
+        themeSelect.value = key;
+        try { localStorage.setItem("dreamyMood", key); } catch (e) {}
+    }
+
+    function applyControl(mode) {
+        if (!["joystick", "buttons", "keys"].includes(mode)) mode = "buttons";
+        controlMode = mode;
+        document.body.dataset.control = mode;
+        controlSelect.value = mode;
+        if (!started && !isGameOver) hintEl.innerText = startHintText();
+        try { localStorage.setItem("dreamyControl", mode); } catch (e) {}
+    }
+
+    themeSelect.addEventListener("change", () => { applyTheme(themeSelect.value); themeSelect.blur(); });
+    controlSelect.addEventListener("change", () => { applyControl(controlSelect.value); controlSelect.blur(); });
+    speedSelect.addEventListener("change", () => speedSelect.blur());
+    modeSelect.addEventListener("change", () => {
+        friendMode = modeSelect.value === "friend";
+        document.body.dataset.mode = friendMode ? "friend" : "solo";
+        resetGame();
+        modeSelect.blur();
+    });
+
+    let savedMood = null, savedControl = null;
+    try { savedMood = localStorage.getItem("dreamyMood"); savedControl = localStorage.getItem("dreamyControl"); } catch (e) {}
+    
+    applyTheme(savedMood || "midnight");
     resetGame();
+    applyControl(savedControl || "buttons"); // Defaults to buttons on first load
+    fit();
     requestAnimationFrame(loop);
+
+    if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+    }
 </script>
 </body>
 </html>
