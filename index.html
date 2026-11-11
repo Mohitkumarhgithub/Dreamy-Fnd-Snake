@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Dreamy Snake - 2 Player Battle</title>
+<title>Dreamy Snake - 2 Player Race</title>
 <meta name="theme-color" content="#172554">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="manifest" href="manifest.json">
@@ -118,8 +118,8 @@
         display: none; flex-direction: column; align-items: center; justify-content: center;
         color: #fff; z-index: 20; padding: 16px; box-sizing: border-box;
     }
-    #game-over h2 { font-size: clamp(22px, 6vw, 30px); margin: 0 0 8px; color: #ff4d4d; }
-    #winner-announcement { font-size: 18px; color: #ffd166; font-weight: bold; margin-bottom: 10px; }
+    #game-over h2 { font-size: clamp(22px, 6vw, 30px); margin: 0 0 8px; color: #ffd166; }
+    #winner-announcement { font-size: 18px; color: #2de2a6; font-weight: bold; margin-bottom: 10px; }
     .series-score { font-size: 15px; background: rgba(255,255,255,0.15); padding: 6px 12px; border-radius: 12px; margin-bottom: 10px; }
     #restart-msg { font-size: 13px; background: rgba(255,255,255,0.2); padding: 5px 12px; border-radius: 15px; }
 
@@ -140,16 +140,16 @@
 
 <div class="game-container" id="container">
     <div class="header-bar" id="hud">
-        <div id="hud-p1">🟦 P1: <span id="score1">0</span></div>
-        <div id="hud-center">🎯 Target: 25</div>
-        <div id="hud-p2">🟪 P2: <span id="score2">0</span></div>
+        <div id="hud-p1">🟦 P1: <span id="score1">0</span>/25</div>
+        <div id="hud-center">⚡ First to 25!</div>
+        <div id="hud-p2">🟪 P2: <span id="score2">0</span>/25</div>
     </div>
 
     <div class="controls-bar">
         <span>Mode:</span>
         <select id="modeSelect">
             <option value="solo">🐍 Solo Mode</option>
-            <option value="duo" selected>⚔️ 2-Player Local Battle</option>
+            <option value="duo" selected>⚔️ 2-Player Race (First to 25)</option>
         </select>
         <span>Mood:</span>
         <select id="themeSelect">
@@ -162,20 +162,19 @@
     <div class="stage" id="stage">
         <div class="board" id="board">
             <canvas id="game" width="400" height="400"></canvas>
-            <div id="start-hint" class="overlay-msg active">Tap any button or key to start!</div>
+            <div id="start-hint" class="overlay-msg active">Race to 25 balls! Tap any button or key to start.</div>
             <div id="game-over">
-                <h2 id="go-title">ROUND OVER</h2>
+                <h2 id="go-title">🏆 VICTORY!</h2>
                 <div id="winner-announcement"></div>
-                <div class="series-score" id="series-score-text">Series: P1 [0] - [0] P2</div>
-                <p id="restart-msg">Tap or press key for next round</p>
+                <div class="series-score" id="series-score-text">Match Score: P1 [0] - [0] P2</div>
+                <p id="restart-msg">Tap or press key for next race</p>
             </div>
         </div>
     </div>
 
-    <!-- Dual On-Screen D-Pads for 2-Player Same Device -->
     <div class="pad-wrap">
         <div>
-            <div style="font-size:11px; color:#00ffff; margin-bottom:2px; font-weight:bold;">PLAYER 1 (Blue)</div>
+            <div style="font-size:11px; color:#00ffff; margin-bottom:2px; font-weight:bold;">PLAYER 1 (Blue - W/A/S/D)</div>
             <div class="player-pad">
                 <div class="d-btn" data-p="1" data-dir="U">▲</div>
                 <div class="d-btn" data-p="1" data-dir="L">◀</div>
@@ -184,7 +183,7 @@
             </div>
         </div>
         <div>
-            <div style="font-size:11px; color:#ff70a6; margin-bottom:2px; font-weight:bold;">PLAYER 2 (Pink)</div>
+            <div style="font-size:11px; color:#ff70a6; margin-bottom:2px; font-weight:bold;">PLAYER 2 (Pink - Arrows)</div>
             <div class="player-pad">
                 <div class="d-btn" data-p="2" data-dir="U">▲</div>
                 <div class="d-btn" data-p="2" data-dir="L">◀</div>
@@ -210,7 +209,7 @@
     const seriesScoreText = document.getElementById("series-score-text");
 
     const grid = 20;
-    const WINNING_SCORE = 25; // First to 25 balls wins the match/round!
+    const TARGET_BALLS = 25; // First to 25 balls wins!
     let gameMode = "duo";
     let score1 = 0, score2 = 0;
     let seriesWins1 = 0, seriesWins2 = 0;
@@ -218,8 +217,8 @@
     let count = 0;
     let inputQueue1 = [], inputQueue2 = [];
 
-    let snake1 = { x: 80, y: 160, dx: grid, dy: 0, cells: [], maxCells: 4, color: "#00b4d8" };
-    let snake2 = { x: 300, y: 160, dx: -grid, dy: 0, cells: [], maxCells: 4, color: "#ff5fa2" };
+    let snake1 = { x: 80, y: 160, dx: grid, dy: 0, cells: [], maxCells: 4 };
+    let snake2 = { x: 300, y: 160, dx: -grid, dy: 0, cells: [], maxCells: 4 };
     let ball = { x: 200, y: 200 };
 
     const THEMES = {
@@ -252,7 +251,7 @@
         inputQueue1 = []; inputQueue2 = [];
         isGameOver = false; started = false;
         gameOverEl.style.display = "none";
-        hintEl.innerText = gameMode === "duo" ? "P1: W/A/S/D | P2: Arrow Keys" : "Use arrow keys or buttons to start";
+        hintEl.innerText = gameMode === "duo" ? "P1: W/A/S/D | P2: Arrow Keys (Race to 25!)" : "Use arrow keys or buttons to start (Goal: 25)";
         hintEl.classList.add("active");
         placeBall();
     }
@@ -270,22 +269,18 @@
         ball.x = x; ball.y = y;
     }
 
-    function triggerRoundOver(winner) {
+    function declareWinner(winnerNum) {
         isGameOver = true;
-        if (winner === 1) seriesWins1++;
-        else if (winner === 2) seriesWins2++;
-        else {
-            if (score1 > score2) seriesWins1++;
-            else if (score2 > score1) seriesWins2++;
-        }
+        if (winnerNum === 1) seriesWins1++;
+        else if (winnerNum === 2) seriesWins2++;
 
-        winnerAnnounceEl.innerText = gameMode === "solo" ? `Score: ${score1}` : (winner ? `🎉 Player ${winner} Wins the Round!` : `It's a Tie!`);
-        seriesScoreText.innerText = `Best of Series: P1 [${seriesWins1}] - [${seriesWins2}] P2`;
+        winnerAnnounceEl.innerText = gameMode === "solo" ? `🎉 You reached 25 balls! Score: 25` : `🎉 Player ${winnerNum} reached 25 balls first and wins!`;
+        seriesScoreText.innerText = `Match Score: P1 [${seriesWins1}] - [${seriesWins2}] P2`;
         gameOverEl.style.display = "flex";
     }
 
     function step() {
-        // P1 Controls Queue
+        // P1 Direction
         if (inputQueue1.length > 0) {
             const d = inputQueue1.shift();
             if (d === 'L' && snake1.dx === 0) { snake1.dx = -grid; snake1.dy = 0; }
@@ -294,7 +289,7 @@
             if (d === 'D' && snake1.dy === 0) { snake1.dy = grid; snake1.dx = 0; }
         }
 
-        // P2 Controls Queue (Only in Duo Mode)
+        // P2 Direction
         if (gameMode === "duo" && inputQueue2.length > 0) {
             const d = inputQueue2.shift();
             if (d === 'L' && snake2.dx === 0) { snake2.dx = -grid; snake2.dy = 0; }
@@ -303,14 +298,14 @@
             if (d === 'D' && snake2.dy === 0) { snake2.dy = grid; snake2.dx = 0; }
         }
 
-        // Move Snake 1
+        // Move P1
         snake1.x += snake1.dx; snake1.y += snake1.dy;
         if (snake1.x < 0) snake1.x = canvas.width - grid; else if (snake1.x >= canvas.width) snake1.x = 0;
         if (snake1.y < 0) snake1.y = canvas.height - grid; else if (snake1.y >= canvas.height) snake1.y = 0;
         snake1.cells.unshift({ x: snake1.x, y: snake1.y });
         if (snake1.cells.length > snake1.maxCells) snake1.cells.pop();
 
-        // Move Snake 2 (if Duo)
+        // Move P2
         if (gameMode === "duo") {
             snake2.x += snake2.dx; snake2.y += snake2.dy;
             if (snake2.x < 0) snake2.x = canvas.width - grid; else if (snake2.x >= canvas.width) snake2.x = 0;
@@ -319,30 +314,24 @@
             if (snake2.cells.length > snake2.maxCells) snake2.cells.pop();
         }
 
-        // Check Ball Eating (Shared Ball!)
+        // Check Ball Eating (Shared ball - first head to reach eats it, no collisions/deaths!)
+        let ballEaten = false;
         if (snake1.x === ball.x && snake1.y === ball.y) {
-            snake1.maxCells++; score1 += 10; score1El.innerText = score1;
-            placeBall();
-            if (score1 >= WINNING_SCORE) { triggerRoundOver(1); return; }
+            snake1.maxCells++;
+            score1++;
+            score1El.innerText = score1;
+            ballEaten = true;
+            if (score1 >= TARGET_BALLS) { declareWinner(1); return; }
         }
-        if (gameMode === "duo" && snake2.x === ball.x && snake2.y === ball.y) {
-            snake2.maxCells++; score2 += 10; score2El.innerText = score2;
-            placeBall();
-            if (score2 >= WINNING_SCORE) { triggerRoundOver(2); return; }
+        if (gameMode === "duo" && !ballEaten && snake2.x === ball.x && snake2.y === ball.y) {
+            snake2.maxCells++;
+            score2++;
+            score2El.innerText = score2;
+            ballEaten = true;
+            if (score2 >= TARGET_BALLS) { declareWinner(2); return; }
         }
 
-        // Collisions: P1 self or P2 collision
-        for (let i = 4; i < snake1.cells.length; i++) {
-            if (snake1.cells[i].x === snake1.x && snake1.cells[i].y === snake1.y) { triggerRoundOver(gameMode === "duo" ? 2 : 1); return; }
-        }
-        if (gameMode === "duo") {
-            for (let i = 4; i < snake2.cells.length; i++) {
-                if (snake2.cells[i].x === snake2.x && snake2.cells[i].y === snake2.y) { triggerRoundOver(1); return; }
-            }
-            // Head-on collision or crashing into each other's bodies
-            if (snake1.cells.some(c => c.x === snake2.x && c.y === snake2.y)) { triggerRoundOver(1); return; }
-            if (snake2.cells.some(c => c.x === snake1.x && c.y === snake1.y)) { triggerRoundOver(2); return; }
-        }
+        if (ballEaten) placeBall();
     }
 
     function draw() {
@@ -355,13 +344,13 @@
         ctx.beginPath(); ctx.arc(ball.x + grid/2, ball.y + grid/2, 8, 0, Math.PI * 2); ctx.fill();
         ctx.shadowBlur = 0;
 
-        // Draw Snake 1 (Blue)
+        // Draw Snake 1 (Neon Blue)
         snake1.cells.forEach((cell, idx) => {
             ctx.fillStyle = idx === 0 ? "#00b4d8" : "#0077b6";
             ctx.beginPath(); ctx.arc(cell.x + grid/2, cell.y + grid/2, idx === 0 ? 10 : 8, 0, Math.PI*2); ctx.fill();
         });
 
-        // Draw Snake 2 (Pink - Duo Mode Only)
+        // Draw Snake 2 (Velvet Pink - Duo Mode Only)
         if (gameMode === "duo") {
             snake2.cells.forEach((cell, idx) => {
                 ctx.fillStyle = idx === 0 ? "#ff5fa2" : "#b5179e";
@@ -372,13 +361,13 @@
 
     function loop() {
         requestAnimationFrame(loop);
-        if (++count < 6) return; // Game speed
+        if (++count < 5) return; // Speed
         count = 0;
         if (!isGameOver && started) step();
         draw();
     }
 
-    // Keyboard Controls: P1 = W/A/S/D, P2 = Arrow Keys
+    // Keyboard Controls
     document.addEventListener("keydown", e => {
         const k = e.key.toLowerCase();
         if (["arrowup","arrowdown","arrowleft","arrowright","w","a","s","d"," "].includes(k)) e.preventDefault();
@@ -399,7 +388,6 @@
             if (k === "arrowright") inputQueue2.push('R');
             if (k === "arrowdown") inputQueue2.push('D');
         } else {
-            // In solo mode, arrow keys also control P1
             if (k === "arrowleft") inputQueue1.push('L');
             if (k === "arrowup") inputQueue1.push('U');
             if (k === "arrowright") inputQueue1.push('R');
@@ -407,7 +395,7 @@
         }
     });
 
-    // Touch D-Pad Controls for mobile buttons
+    // On-screen buttons
     document.querySelectorAll(".d-btn").forEach(btn => {
         btn.addEventListener("pointerdown", e => {
             e.preventDefault();
