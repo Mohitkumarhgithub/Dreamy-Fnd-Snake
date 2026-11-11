@@ -717,22 +717,18 @@ function scheduleMilestone() {
         showPopup(unusedQuotes.splice(i, 1)[0], 5000);
     }
 
-   function loseLife(hitIndex) {
-    lives--;
-
-    if (lives <= 0) {
-        renderHearts(false);
-        triggerGameOver();
-        return;
+    function loseLife(hitIndex) {
+        lives--;
+        try { if (navigator.vibrate) navigator.vibrate(50); } catch (e) {}
+        if (lives <= 0) { renderHearts(false); triggerGameOver(); return; }
+        snake.cells = snake.cells.slice(0, Math.max(4, hitIndex));
+        snake.maxCells = snake.cells.length;
+        inputQueue = [];
+        pauseUntil = now() + HIT_PAUSE_MS;
+        renderHearts(true);
+        container.classList.add("hit");
+        setTimeout(() => container.classList.remove("hit"), HIT_PAUSE_MS);
     }
-
-    snake.cells = snake.cells.slice(0, Math.max(4, hitIndex));
-    snake.maxCells = snake.cells.length;
-    inputQueue = [];
-
-    pauseUntil = now() + HIT_PAUSE_MS;
-    renderHearts(true);
-}
 
     function triggerGameOver() {
         isGameOver = true;
@@ -1051,24 +1047,19 @@ function scheduleMilestone() {
         snake.x += snake.dx;
         snake.y += snake.dy;
         if (snake.x < 0) snake.x = canvas.width - grid;
-else if (snake.x >= canvas.width) snake.x = 0;
+        else if (snake.x >= canvas.width) snake.x = 0;
+        if (snake.y < 0) snake.y = canvas.height - grid;
+        else if (snake.y >= canvas.height) snake.y = 0;
 
-if (snake.y < 0) snake.y = canvas.height - grid;
-else if (snake.y >= canvas.height) snake.y = 0;
+        snake.cells.unshift({ x: snake.x, y: snake.y });
+        if (snake.cells.length > snake.maxCells) snake.cells.pop();
 
-snake.cells.unshift({ x: snake.x, y: snake.y });
+        if (snake.x === ball.x && snake.y === ball.y) handleEat();
 
-if (snake.cells.length > snake.maxCells) snake.cells.pop();
-
-if (snake.x === ball.x && snake.y === ball.y) handleEat();
-
-for (let i = 4; i < snake.cells.length; i++) {
-    if (snake.cells[i].x === snake.x &&
-        snake.cells[i].y === snake.y) {
-        loseLife(i);
-        break;
+        for (let i = 4; i < snake.cells.length; i++) {
+            if (snake.cells[i].x === snake.x && snake.cells[i].y === snake.y) { loseLife(i); break; }
+        }
     }
-}
 
     /* ---------- Optimized drawing ---------- */
     function drawFood() {
