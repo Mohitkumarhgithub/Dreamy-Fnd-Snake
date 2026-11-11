@@ -721,8 +721,7 @@ function scheduleMilestone() {
         lives--;
         try { if (navigator.vibrate) navigator.vibrate(50); } catch (e) {}
         if (lives <= 0) { renderHearts(false); triggerGameOver(); return; }
-        snake.cells = snake.cells.slice(0, Math.max(4, hitIndex));
-        snake.maxCells = snake.cells.length;
+       
         inputQueue = [];
         pauseUntil = now() + HIT_PAUSE_MS;
         renderHearts(true);
