@@ -423,7 +423,7 @@
 
 </style>
 </head>
-<body data-control="buttons" data-mode="solo">
+<body data-control="joystick" data-mode="solo">
 
 <div class="bg"><span></span><span></span><span></span><span></span><span></span></div>
 
@@ -556,7 +556,7 @@
     let pauseUntil = 0, gameOverUnlockAt = 0;
     let nextBonusAt = BONUS_EVERY, nextMilestoneEaten = 7;
     let unusedQuotes = [], inputQueue = [], popupTimer = null;
-    let controlMode = "joystick";
+    let controlMode = "buttons";
     let friendMode = false;
     let dualStarted = false;
     let dualOver = false;
@@ -1336,7 +1336,7 @@ function scheduleMilestone() {
     applyTheme(savedMood || "midnight");
     applySnakeSkin(savedSnakeSkin || "mood");
     resetGame();
-    applyControl(savedControl || "buttons"); // Defaults to buttons on first load
+    applyControl(savedControl || "joystick"); // Defaults to buttons on first load
     fit();
     requestAnimationFrame(loop);
 
